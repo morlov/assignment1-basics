@@ -1,6 +1,7 @@
 import regex
 import pickle
 from collections.abc import Iterable, Iterator
+from tqdm import tqdm
 
 
 class BPETokenizer:
@@ -72,7 +73,8 @@ class BPETokenizer:
         return encoded_text
     
     def encode_iterable(self, iterable: Iterable[str]) -> Iterator[int]:
-        for text in iterable:
+
+        for text in tqdm(iterable):
             encoded_text = self.encode(text)
             for token in encoded_text:
                 yield token
