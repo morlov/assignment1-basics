@@ -33,7 +33,7 @@ def run_linear(
     """
 
     linear = solution_model.Linear(d_in, d_out, device=weights.device, dtype=weights.dtype)
-    linear.load_state_dict({'weights': weights})
+    linear.load_state_dict({'weight': weights})
     return linear(in_features)
 
 
@@ -62,7 +62,7 @@ def run_embedding(
         device=weights.device,
         dtype=weights.dtype
     )
-    embeddings.load_state_dict({"weights": weights})
+    embeddings.load_state_dict({"weight": weights})
     return embeddings(token_ids)
 
 
@@ -97,7 +97,7 @@ def run_swiglu(
     # swiglu.w3.weight.data = w3_weight
 
     swiglu_ffn = solution_model.SwigLUFFN(d_model, d_ff, device=w1_weight.device, dtype=w1_weight.dtype)
-    swiglu_ffn.load_state_dict({'w1.weights': w1_weight, 'w2.weights': w2_weight, 'w3.weights': w3_weight})
+    swiglu_ffn.load_state_dict({'w1.weight': w1_weight, 'w2.weight': w2_weight, 'w3.weight': w3_weight})
     return swiglu_ffn(in_features)
 
 
@@ -153,7 +153,27 @@ def run_multihead_self_attention(
         Float[Tensor, " ... sequence_length d_out"]: Tensor with the output of running your optimized, batched multi-headed attention
         implementation with the given QKV projection weights and input features.
     """
-    raise NotImplementedError
+    multihead_self_attention = solution_model.CausalMultiHeadSelfAttention(
+        d_model=d_model,
+        num_heads=num_heads,
+        device=in_features.device,
+        dtype=in_features.dtype
+    )
+    multihead_self_attention.load_state_dict(
+        {
+            "q_proj.weight": q_proj_weight,
+            "k_proj.weight": k_proj_weight,
+            "v_proj.weight": v_proj_weight,
+            "output_proj.weight": o_proj_weight
+    }
+    )
+    
+    # multihead_self_attention.q_proj.weight.data = q_proj_weight
+    # multihead_self_attention.k_proj.weight.data = k_proj_weight
+    # multihead_self_attention.v_proj.weight.data = v_proj_weight
+    # multihead_self_attention.o_proj.weight.data = o_proj_weight
+
+    return multihead_self_attention(in_features)
 
 
 def run_multihead_self_attention_with_rope(
@@ -193,7 +213,31 @@ def run_multihead_self_attention_with_rope(
         Float[Tensor, " ... sequence_length d_out"]: Tensor with the output of running your optimized, batched multi-headed attention
         implementation with the given QKV projection weights and input features.
     """
-    raise NotImplementedError
+    multihead_self_attention = solution_model.CausalMultiHeadSelfAttention(
+        d_model=d_model,
+        num_heads=num_heads,
+        max_seq_len=max_seq_len,
+        use_rope=True,
+        theta=theta,
+        device=in_features.device,
+        dtype=in_features.dtype
+    )
+
+    multihead_self_attention.load_state_dict(
+        {
+            "q_proj.weight": q_proj_weight,
+            "k_proj.weight": k_proj_weight,
+            "v_proj.weight": v_proj_weight,
+            "output_proj.weight": o_proj_weight
+        }
+    )
+
+    # multihead_self_attention.q_proj.weight.data = q_proj_weight
+    # multihead_self_attention.k_proj.weight.data = k_proj_weight
+    # multihead_self_attention.v_proj.weight.data = v_proj_weight
+    # multihead_self_attention.ootput_proj.weight.data = o_proj_weight
+
+    return multihead_self_attention(in_features, token_positions)
 
 
 def run_rope(
@@ -290,7 +334,21 @@ def run_transformer_block(
         Float[Tensor, "batch sequence_length d_model"] Tensor with the output of
         running the Transformer block on the input features while using RoPE.
     """
-    raise NotImplementedError
+
+    device, dtype = in_features.device, in_features.dtype
+
+    transformer_block = solution_model.TransformerBlock(
+        d_model=d_model,
+        num_heads=num_heads,
+        d_ff=d_ff,
+        max_seq_len=max_seq_len,
+        theta=theta,
+        device=device,
+        dtype=dtype
+
+    )
+    transformer_block.load_state_dict(weights)
+    return transformer_block(in_features)
 
 
 def run_transformer_lm(
@@ -372,7 +430,22 @@ def run_transformer_lm(
         Float[Tensor, "batch_size sequence_length vocab_size"]: Tensor with the predicted unnormalized
         next-word distribution for each token.
     """
-    raise NotImplementedError
+    
+    transformer_lm = solution_model.TransformerLM(
+        vocab_size=vocab_size,
+        context_length=context_length,
+        d_model=d_model,
+        num_layers=num_layers,
+        num_heads=num_heads,
+        d_ff=d_ff,
+        rope_theta=rope_theta,
+        device=in_indices.device,
+        dtype=torch.float32
+    )
+
+    transformer_lm.load_state_dict(weights)
+    
+    return transformer_lm(in_indices)
 
 
 def run_rmsnorm(
@@ -401,7 +474,7 @@ def run_rmsnorm(
         device=weights.device,
         dtype=weights.dtype
     )
-    rms_norm.load_state_dict({"weights": weights})
+    rms_norm.load_state_dict({"weight": weights})
     return rms_norm(in_features) 
 
 
