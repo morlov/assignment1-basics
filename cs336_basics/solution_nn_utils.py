@@ -1,6 +1,6 @@
 import torch
 from torch import Tensor
-from jaxtyping import Float, Bool
+from jaxtyping import Float, Bool, Int
 import einops
 import math
 
@@ -23,10 +23,11 @@ def softmax(in_features: Float[Tensor, " ..."], dim: int) -> Float[Tensor, " ...
     return exp_along_dim/sum_along_dim
 
 def scaled_dot_product_attention(
-    Q: Float[Tensor, " ... queries d_k"],
-    K: Float[Tensor, " ... keys d_k"],
-    V: Float[Tensor, " ... values d_v"],
-    mask: Bool[Tensor, " ... queries keys"] | None = None) -> Float[Tensor, " ... queries d_v"]:
+        Q: Float[Tensor, " ... queries d_k"],
+        K: Float[Tensor, " ... keys d_k"],
+        V: Float[Tensor, " ... values d_v"],
+        mask: Bool[Tensor, " ... queries keys"] | None = None
+    ) -> Float[Tensor, " ... queries d_v"]:
 
     d_k = Q.size(-1)
 
@@ -40,3 +41,12 @@ def scaled_dot_product_attention(
 
     return output
 
+
+def cross_entropy(inputs: Float[Tensor, "batch_size vocab_size"], targets: Int[Tensor, "batch_size"]) -> Float[Tensor, ""]:
+
+    probs = inputs[torch.arange(targets.size(0)), targets].unsqueeze(0)
+    probs_max = einops.reduce(inputs, "... vocab_size -> ... 1", "max")
+    probs_sum = einops.reduce(torch.exp(inputs - probs_max), "... vocab_size -> ... 1", "sum") 
+    neg_log_probs = - probs + probs_max  + torch.log(probs_sum)
+    loss = einops.reduce(neg_log_probs, "batch vocab_size -> 1", 'mean')
+    return loss
