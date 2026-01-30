@@ -10,7 +10,13 @@ from jaxtyping import Bool, Float, Int
 from torch import Tensor
 from einops import einsum, rearrange
 
-from cs336_basics import solution_nn_utils, solution_train_bpe, solution_tokenizer, solution_model
+from cs336_basics import (
+    solution_nn_utils,
+    solution_train_bpe,
+    solution_tokenizer,
+    solution_model,
+    solution_optimizer
+)
 
 
 def run_linear(
@@ -567,7 +573,7 @@ def get_adamw_cls() -> Any:
     """
     Returns a torch.optim.Optimizer that implements AdamW.
     """
-    raise NotImplementedError
+    return solution_optimizer.AdamW
 
 
 def run_get_lr_cosine_schedule(
